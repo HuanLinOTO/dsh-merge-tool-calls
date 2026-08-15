@@ -1,13 +1,11 @@
 # Insert the merge-tool-calls client plugin row. The plugin only contributes a
 # browser-side toolview takeover (tool.call.toolview shadow registrations), so
-# the row carries the user-facing config and an empty host apply.
+# the row carries the user-facing config and an empty host apply. Empty `tools`
+# = merge every built-in generic-family tool (see src/client/tool-names.ts).
 - insert:
     - id: merge-tool-calls
       name: '@huanlin/dsh-plugin-merge-tool-calls'
       config:
-        tools:
-          - read
-          - grep
-          - glob
+        tools: []
         groupBy: adjacent
         maxGroupSize: 8

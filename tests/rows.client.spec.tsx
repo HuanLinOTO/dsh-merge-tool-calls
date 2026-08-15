@@ -34,6 +34,15 @@ function settledRead(callId: string, path: string): ToolCallBlock {
   }
 }
 
+function settledWrite(callId: string, path: string): ToolCallBlock {
+  return {
+    kind: 'tool-result', seq: 1, time: 0, callId,
+    call: { name: 'write', argsRaw: JSON.stringify({ file_path: path }) },
+    callTime: 0, content: [], isError: false, callView: null, resultView: null,
+    subCalls: [],
+  }
+}
+
 const NODE_KEY = (id: string) => `9:tool-call${id}`
 
 function snapshotOf(ids: string[], byId: Record<string, { callId: string; block: ToolCallBlock }>): ConversationSnapshot {
@@ -165,6 +174,58 @@ describe('MergedToolRow', () => {
     const { container, root } = render({ callId: 'subcall', useSession })
     expect(container.querySelector('[data-testid="disclosure"]')).not.toBeNull()
     expect(container.querySelectorAll('.mtc-child-row').length).toBe(0)
+    unmount(root)
+  })
+
+  it('merges non-read tools with their variant title and expandable child rows', () => {
+    const snapshot = snapshotOf(['a', 'b'], {
+      a: { callId: 'a', block: runningCall('a', 'bash') },
+      b: { callId: 'b', block: runningCall('b', 'bash') },
+    })
+    const useSession = ((selector: (s: ConversationSnapshot) => unknown) => selector(snapshot)) as MergedToolRowProps['useSession']
+    const { container, root } = render({ callId: 'a', toolName: 'bash', cfg: { ...CFG, tools: [] }, useSession })
+    expect(container.textContent).toContain('Bash')
+    // A running bash still carries its args as the IN body, so the row expands.
+    const row = container.querySelector('.mtc-child-row') as HTMLDivElement
+    expect(row.dataset.static).toBeUndefined()
+    expect(row.getAttribute('role')).toBe('button')
+    unmount(root)
+  })
+
+  it('keeps a running read child row static (nothing to expand)', () => {
+    const snapshot = snapshotOf(['a', 'b'], {
+      a: { callId: 'a', block: { ...runningCall('a', 'read'), argsRaw: JSON.stringify({ file_path: 'a.ts' }) } },
+      b: { callId: 'b', block: { ...runningCall('b', 'read'), argsRaw: JSON.stringify({ file_path: 'b.ts' }) } },
+    })
+    const useSession = ((selector: (s: ConversationSnapshot) => unknown) => selector(snapshot)) as MergedToolRowProps['useSession']
+    const { container, root } = render({ callId: 'a', cfg: { ...CFG, tools: [] }, useSession })
+    const row = container.querySelector('.mtc-child-row') as HTMLDivElement
+    expect(row.dataset.static).toBe('true')
+    expect(row.getAttribute('role')).toBeNull()
+    act(() => { row.click() })
+    expect(container.querySelectorAll('[data-testid="readblock"]').length).toBe(0)
+    unmount(root)
+  })
+
+  it('renders a write child path as an open-file link (file tools openable)', () => {
+    const snapshot = snapshotOf(['a', 'b'], {
+      a: { callId: 'a', block: settledWrite('a', 'out.ts') },
+      b: { callId: 'b', block: settledWrite('b', 'out2.ts') },
+    })
+    const useSession = ((selector: (s: ConversationSnapshot) => unknown) => selector(snapshot)) as MergedToolRowProps['useSession']
+    const opened: string[] = []
+    const { container, root } = render({
+      callId: 'a',
+      toolName: 'write',
+      cfg: { ...CFG, tools: [] },
+      useSession,
+      openFile: (path: string) => { opened.push(path) },
+    })
+    expect(container.textContent).toContain('Write')
+    const link = container.querySelector('.mtc-child-path-link') as HTMLButtonElement
+    expect(link).not.toBeNull()
+    act(() => { link.click() })
+    expect(opened).toEqual(['out2.ts'])
     unmount(root)
   })
 })

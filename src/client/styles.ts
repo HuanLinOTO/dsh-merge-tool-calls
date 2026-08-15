@@ -56,6 +56,23 @@ export const CSS = `
 
 .mtc-card-body { margin: 4px 0 4px 4px; min-width: 0; }
 .mtc-recovery { margin: 4px 0 4px 4px; white-space: pre-wrap; overflow-wrap: anywhere; font: var(--dsw-font-xs-13); color: var(--dsw-alias-label-tertiary); }
+/* IN/OUT text card for calls without a card primitive (mirrors ToolRow). */
+.mtc-io-card {
+  display: flex; flex-direction: column; min-width: 0;
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 12px;
+  background: var(--dsw-alias-bg-base);
+}
+.mtc-io-section { display: flex; gap: 10px; padding: 8px 12px; min-width: 0; }
+.mtc-io-label {
+  flex: none; font-size: 11px; line-height: 16px; font-weight: 600;
+  color: var(--dsw-alias-label-tertiary);
+}
+.mtc-io-text {
+  flex: 1 1 auto; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere;
+  font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary);
+}
+.mtc-io-text[data-error] { color: var(--dsw-alias-state-error-primary); }
+.mtc-io-divider { height: 1px; background: var(--dsw-alias-border-l2); }
 .mtc-inspect {
   display: inline-flex; align-self: flex-start; align-items: center; gap: 4px;
   margin: 4px 0 2px 4px; padding: 2px 8px;
@@ -79,6 +96,8 @@ export const CSS = `
   font: inherit; text-align: left; color: var(--dsw-alias-label-secondary); cursor: pointer;
 }
 .mtc-child-row:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.mtc-child-row[data-static] { cursor: default; }
+.mtc-child-row[data-static]:hover { background: none; color: var(--dsw-alias-label-secondary); }
 .mtc-child-row .mtc-sep { margin: 0 8px 0 0; }
 .mtc-child-path {
   flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

@@ -8,6 +8,18 @@ export const zh = {
   more: '+{n}',
   showLess: '收起其余',
   mergedCount: '已合并 {n} 次调用',
+  'terminal.signal': '信号 {signal}',
+  'terminal.exitCode': '退出码 {code}',
+  'terminal.running': '运行中',
+  'terminal.failed': '失败',
+  'terminal.done': '已完成',
+  'terminal.copy': '复制',
+  'terminal.copied': '已复制',
+  'terminal.noOutput': '无输出',
+  'terminal.collapseAria': '收起输出',
+  'terminal.collapse': '折叠',
+  'terminal.expandAria': '展开其余 {n} 行输出',
+  'terminal.expandRest': '… 其余 {n} 行',
 } satisfies Record<string, string>
 
 export type MergeToolCallsKey = keyof typeof zh
@@ -21,6 +33,18 @@ export const en = {
   more: '+{n}',
   showLess: 'Show fewer',
   mergedCount: '{n} calls merged',
+  'terminal.signal': 'signal {signal}',
+  'terminal.exitCode': 'exit code {code}',
+  'terminal.running': 'Running',
+  'terminal.failed': 'Failed',
+  'terminal.done': 'Done',
+  'terminal.copy': 'Copy',
+  'terminal.copied': 'Copied',
+  'terminal.noOutput': 'No output',
+  'terminal.collapseAria': 'Collapse output',
+  'terminal.collapse': 'Collapse',
+  'terminal.expandAria': 'Expand the remaining {n} output lines',
+  'terminal.expandRest': '… {n} more lines',
 } satisfies Record<MergeToolCallsKey, string>
 
 export const NS = 'merge-tool-calls'

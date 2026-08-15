@@ -8,6 +8,18 @@ export declare const zh: {
     more: string;
     showLess: string;
     mergedCount: string;
+    'terminal.signal': string;
+    'terminal.exitCode': string;
+    'terminal.running': string;
+    'terminal.failed': string;
+    'terminal.done': string;
+    'terminal.copy': string;
+    'terminal.copied': string;
+    'terminal.noOutput': string;
+    'terminal.collapseAria': string;
+    'terminal.collapse': string;
+    'terminal.expandAria': string;
+    'terminal.expandRest': string;
 };
 export type MergeToolCallsKey = keyof typeof zh;
 export declare const en: {
@@ -19,5 +31,17 @@ export declare const en: {
     more: string;
     showLess: string;
     mergedCount: string;
+    'terminal.signal': string;
+    'terminal.exitCode': string;
+    'terminal.running': string;
+    'terminal.failed': string;
+    'terminal.done': string;
+    'terminal.copy': string;
+    'terminal.copied': string;
+    'terminal.noOutput': string;
+    'terminal.collapseAria': string;
+    'terminal.collapse': string;
+    'terminal.expandAria': string;
+    'terminal.expandRest': string;
 };
 export declare const NS = "merge-tool-calls";

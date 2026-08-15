@@ -38,6 +38,18 @@ export function SearchBlock({ kind }: { kind?: string; files?: unknown[]; paths?
   return <div data-testid="searchblock">{kind}</div>
 }
 
+export function DiffBlock({ diffs }: { diffs?: unknown[]; maxLines?: number }) {
+  return <div data-testid="diffblock">{Array.isArray(diffs) ? diffs.length : 0} hunks</div>
+}
+
+export function TerminalBlock({ command }: { command?: string; cwd?: string; output?: string; exitCode?: number; signal?: string; running?: boolean; maxLines?: number; labels?: unknown }) {
+  return <div data-testid="terminalblock">{command}</div>
+}
+
+export function WebBlock({ kind }: { kind?: string; url?: string; answer?: string; sources?: unknown[]; statusCode?: number; truncated?: boolean }) {
+  return <div data-testid="webblock">{kind}</div>
+}
+
 export function StateDot({ state }: { state: string }) {
   return <span data-testid="statedot" data-state={state} />
 }
@@ -48,4 +60,20 @@ export function IconBrowseOutline16() {
 
 export function IconSearchOutline16() {
   return <span data-testid="icon-search" />
+}
+
+export function IconApiOutline14() {
+  return <span data-testid="icon-api" />
+}
+
+export function IconEditOutline16() {
+  return <span data-testid="icon-edit" />
+}
+
+export function IconCodeOutline16() {
+  return <span data-testid="icon-code" />
+}
+
+export function IconSparkle16() {
+  return <span data-testid="icon-sparkle" />
 }

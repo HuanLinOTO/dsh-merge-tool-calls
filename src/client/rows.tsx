@@ -8,29 +8,46 @@
  * call is not a chat tool-call node at all (e.g. dispatched as a subcall),
  * falls back to a plain single row so the call never disappears.
  *
+ * The row surface mirrors the built-in generic ToolRow: a variant title/icon
+ * plus the settled card (read/search/diff/terminal/web) or IN/OUT text.
+ *
  * Everything here is a pure function of the chat snapshot + the frozen call
  * slices (replay-deterministic); expand state is component-local view state.
  * @module
  */
 import { memo, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import {
-  DisclosureRow, IconBrowseOutline16, IconSearchOutline16, ReadBlock, SearchBlock, StateDot,
+  DiffBlock, DisclosureRow, IconApiOutline14, IconBrowseOutline16, IconCodeOutline16,
+  IconEditOutline16, IconSearchOutline16, IconSparkle16, ReadBlock, SearchBlock, StateDot,
+  TerminalBlock, WebBlock, type TerminalBlockLabels,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ToolCallBlock } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { MergeToolCallsConfig } from '../types.ts'
-import { callRowModel, type CallRowModel, type RowState } from './card-model.ts'
+import { callRowModel, type CallRowModel, type RowState, type ToolVariant } from './card-model.ts'
 import { readRun } from './merge-run.ts'
 
 /** Chat rows show a capped card; the details panel stays the full-height surface. */
 const CHAT_READ_MAX_LINES = 8
 const CHAT_SEARCH_MAX_LINES = 8
+const CHAT_DIFF_MAX_LINES = 8
 
 /** Locale seat and inject face of the merged row registration. */
 export type MergedToolRowProps = ToolCallViewProps
   & PropsLocale<'merge-tool-calls'>
   & { readonly cfg: MergeToolCallsConfig }
+
+/** Variant leading icons (figma table); all glyphs render at 14 inside the 16px leading box. */
+const VARIANT_ICONS: Record<ToolVariant, ReactNode> = {
+  search: <IconSearchOutline16 size={14} />,
+  read: <IconBrowseOutline16 size={14} />,
+  bash: <IconApiOutline14 size={14} />,
+  write: <IconEditOutline16 size={14} />,
+  edit: <IconEditOutline16 size={14} />,
+  code: <IconCodeOutline16 size={14} />,
+  others: <IconSparkle16 size={14} />,
+}
 
 /** Leading-slot state substitution, mirroring the shipped row. */
 function leadingFor(state: RowState, icon: ReactNode): ReactNode {
@@ -51,17 +68,32 @@ function stateStatus(state: RowState, t: MergedToolRowProps['t']): string | null
   }
 }
 
-/** Title per row family (figma literals, not translatable copy). */
-function rowTitle(toolName: string): string {
-  return toolName === 'read' ? 'Read' : 'Search'
+/** TerminalBlock display copy from the plugin's own dictionary. */
+function terminalLabels(t: MergedToolRowProps['t']): TerminalBlockLabels {
+  return {
+    signal: signal => t('terminal.signal', { signal }),
+    exitCode: code => t('terminal.exitCode', { code }),
+    running: t('terminal.running'),
+    failed: t('terminal.failed'),
+    done: t('terminal.done'),
+    copy: t('terminal.copy'),
+    copied: t('terminal.copied'),
+    noOutput: t('terminal.noOutput'),
+    collapseAria: t('terminal.collapseAria'),
+    collapse: t('terminal.collapse'),
+    expandAria: hidden => t('terminal.expandAria', { n: hidden }),
+    expand: hidden => t('terminal.expandRest', { n: hidden }),
+  }
 }
 
-function rowIcon(toolName: string): ReactNode {
-  return toolName === 'read' ? <IconBrowseOutline16 size={14} /> : <IconSearchOutline16 size={14} />
-}
-
-/** One call's expanded-body card content, or null (running/generic results). */
-function CardBody({ model }: { model: CallRowModel }) {
+/** One call's expanded-body card, mirroring the built-in ToolRow body. */
+function CardBody({ model, t }: { model: CallRowModel; t: MergedToolRowProps['t'] }) {
+  if (model.terminal !== null) {
+    return <TerminalBlock {...model.terminal.card} maxLines={Infinity} labels={terminalLabels(t)} />
+  }
+  if (model.diff !== null) {
+    return <DiffBlock {...model.diff.card} maxLines={CHAT_DIFF_MAX_LINES} />
+  }
   if (model.read !== null) {
     return <ReadBlock {...model.read} maxLines={CHAT_READ_MAX_LINES} />
   }
@@ -75,7 +107,29 @@ function CardBody({ model }: { model: CallRowModel }) {
       </>
     )
   }
-  return null
+  if (model.web !== null) {
+    return <WebBlock {...model.web} />
+  }
+  const hasBody = model.body !== null
+  const hasOutput = model.output !== null
+  if (!hasBody && !hasOutput) return null
+  return (
+    <div className="mtc-io-card">
+      {hasBody && (
+        <div className="mtc-io-section">
+          <span className="mtc-io-label">IN</span>
+          <span className="mtc-io-text">{model.body}</span>
+        </div>
+      )}
+      {hasBody && hasOutput && <span className="mtc-io-divider" aria-hidden />}
+      {hasOutput && (
+        <div className="mtc-io-section">
+          <span className="mtc-io-label">OUT</span>
+          <span className="mtc-io-text" data-error={model.state === 'error' || undefined}>{model.output}</span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 /** The run's main card: the first call's full row (chrome + expandable card). */
@@ -93,8 +147,7 @@ export const RowCard = memo(function RowCard({
 }) {
   const model = callRowModel(toolName, block, cwd)
   const [expanded, setExpanded] = useState(false)
-  const hasCard = model.read !== null || model.search !== null
-  const open = expanded && hasCard
+  const open = expanded && model.expandable
   const status = stateStatus(model.state, t)
   const failureLine = model.state === 'error' ? model.errorSummary ?? null : null
   const summaryText = failureLine ?? model.summary
@@ -107,17 +160,17 @@ export const RowCard = memo(function RowCard({
     if (model.filePath !== undefined) openFile(model.filePath)
   }
   return (
-    <div className="mtc-row" data-state={model.state}>
+    <div className="mtc-row" data-state={model.state} data-variant={model.variant}>
       {status !== null && <span className="mtc-visually-hidden">{status}</span>}
       <DisclosureRow
         rowClassName="mtc-title-row"
         titleClassName="mtc-title"
         leadingClassName="mtc-leading"
         chevronClassName="mtc-chevron"
-        icon={leadingFor(model.state, rowIcon(toolName))}
-        title={rowTitle(toolName)}
+        icon={leadingFor(model.state, VARIANT_ICONS[model.variant])}
+        title={model.title}
         open={open}
-        expandable={hasCard}
+        expandable={model.expandable}
         expandOnRowClick
         keepContentWhenOpen
         onToggle={() => { setExpanded(value => !value) }}
@@ -134,7 +187,7 @@ export const RowCard = memo(function RowCard({
         )}
       >
         <div className="mtc-card-body">
-          <CardBody model={model} />
+          <CardBody model={model} t={t} />
           {inspect !== undefined && (
             <button type="button" className="mtc-inspect" onClick={inspect}>Inspect</button>
           )}
@@ -146,10 +199,10 @@ export const RowCard = memo(function RowCard({
 
 /**
  * One compact continuation row: the main row's tail structure ([sep dot][path]).
- * The row toggles the inline content card on click (mirroring the main row's
- * whole-row disclosure); a read-family path additionally renders as an
- * open-file link (the sidebar preview) that stops propagation, exactly like the
- * main row's summary link.
+ * An expandable call toggles the inline content card on click (mirroring the
+ * main row's whole-row disclosure); a read/write/edit-family path additionally
+ * renders as an open-file link (the sidebar preview) that stops propagation,
+ * exactly like the main row's summary link.
  */
 export const ChildRow = memo(function ChildRow({
   toolName, block, cwd, openFile, t,
@@ -163,6 +216,7 @@ export const ChildRow = memo(function ChildRow({
   const model = callRowModel(toolName, block, cwd)
   const [open, setOpen] = useState(false)
   const stateLabel = stateStatus(model.state, t)
+  const expandable = model.expandable
   const toggle = (): void => { setOpen(value => !value) }
   const openFileClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
@@ -178,12 +232,13 @@ export const ChildRow = memo(function ChildRow({
     <div className="mtc-child">
       <div
         className="mtc-child-row"
-        data-open={open || undefined}
-        role="button"
-        tabIndex={0}
-        aria-expanded={open}
-        onClick={toggle}
-        onKeyDown={onRowKeyDown}
+        data-open={expandable && open || undefined}
+        data-static={expandable ? undefined : true}
+        role={expandable ? 'button' : undefined}
+        tabIndex={expandable ? 0 : undefined}
+        aria-expanded={expandable ? open : undefined}
+        onClick={expandable ? toggle : undefined}
+        onKeyDown={expandable ? onRowKeyDown : undefined}
       >
         <span className="mtc-sep" aria-hidden />
         {model.filePath !== undefined ? (
@@ -195,9 +250,9 @@ export const ChildRow = memo(function ChildRow({
           <span className="mtc-child-state" data-error={model.state === 'error' || undefined}>{stateLabel}</span>
         )}
       </div>
-      {open && (
+      {expandable && open && (
         <div className="mtc-child-body">
-          <CardBody model={model} />
+          <CardBody model={model} t={t} />
         </div>
       )}
     </div>
@@ -210,11 +265,11 @@ export const ChildRow = memo(function ChildRow({
  * a chat tool-call node.
  *
  * Child-row alignment is measured at runtime, not hardcoded: the main row's
- * separator dot sits after a variable-width title ("Read"/"Search"), so its
- * column depends on the rendered font. A layout effect measures the dot's
- * offset from the card root (once, plus on reflow via ResizeObserver) and
- * indents the children so their dots and paths land on the main row's columns
- * — no font/title constants to keep in sync.
+ * separator dot sits after a variable-width title ("Read"/"Search"/"Bash"/…),
+ * so its column depends on the rendered font. A layout effect measures the
+ * dot's offset from the card root (once, plus on reflow via ResizeObserver)
+ * and indents the children so their dots and paths land on the main row's
+ * columns — no font/title constants to keep in sync.
  */
 export function MergedToolRow({ callId, toolName, block, cwd, openFile, inspect, t, cfg, useSession }: MergedToolRowProps) {
   const run = useSession(snapshot => readRun(

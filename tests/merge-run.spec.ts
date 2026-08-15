@@ -119,6 +119,22 @@ describe('readRun', () => {
     expect(readRun(order, store, 'e', TOOLS, 'adjacent', 3)!.isFirst).toBe(false)
   })
 
+  it('treats an empty tools list as every tool', () => {
+    const store = makeStore(
+      node(KEY('w1'), 'w1', 'web_search', location(1, 1)),
+      node(KEY('w2'), 'w2', 'web_search', location(1, 1)),
+      node(KEY('r'), 'r', 'read', location(1, 1)),
+    )
+    const order = keys('w1', 'w2', 'r')
+    const run = readRun(order, store, 'w1', [], 'adjacent', 8)
+    expect(run!.blocks.map(block => block.callId)).toEqual(['w1', 'w2'])
+    expect(run!.isFirst).toBe(true)
+    expect(readRun(order, store, 'w2', [], 'adjacent', 8)!.isFirst).toBe(false)
+    // A later single call of a different tool starts its own group.
+    expect(readRun(order, store, 'r', [], 'adjacent', 8)!.blocks.map(block => block.callId)).toEqual(['r'])
+    expect(isGroupedTool('anything', [])).toBe(true)
+  })
+
   it('returns null when the call is not a chat tool-call node', () => {
     const store = makeStore(node(KEY('a'), 'a', 'read', location(1, 1)))
     expect(readRun(keys('a'), store, 'missing', TOOLS, 'adjacent', 8)).toBeNull()
@@ -129,5 +145,6 @@ describe('readRun', () => {
     expect(callNameOf({ kind: 'tool-result', seq: 1, time: 0, callId: 'x', call: { name: 'grep', argsRaw: '{}' }, callTime: 0, content: [], isError: false, callView: null, resultView: null, subCalls: [] })).toBe('grep')
     expect(isGroupedTool('read', TOOLS)).toBe(true)
     expect(isGroupedTool('web_search', TOOLS)).toBe(false)
+    expect(isGroupedTool('anything', [])).toBe(true)
   })
 })

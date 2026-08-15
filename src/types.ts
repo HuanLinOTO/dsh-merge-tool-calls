@@ -5,7 +5,12 @@ export type MergeGroupMode = 'adjacent' | 'step'
 
 /** Plugin configuration; defaults live in the Schemastery schema and cordis.patch.yml. */
 export interface MergeToolCallsConfig {
-  /** Wire tool names whose consecutive calls merge (e.g. read, grep, glob). */
+  /**
+   * Wire tool names whose consecutive calls merge. Empty = every built-in
+   * generic-family tool (read/grep/glob/edit/write/bash/pwsh/web_search/
+   * web_fetch/run_code/cordis_package_inspect/cordis_runtime_inspect); a
+   * non-empty list is an explicit whitelist (any wire name works).
+   */
   readonly tools: readonly string[]
   /** `adjacent`: any consecutive run in the chat flow; `step`: only within one agent step. */
   readonly groupBy: MergeGroupMode
@@ -15,7 +20,7 @@ export interface MergeToolCallsConfig {
 
 /** Runtime defaults applied when a half receives no config (defensive only). */
 export const DEFAULT_MERGE_CONFIG: MergeToolCallsConfig = {
-  tools: ['read', 'grep', 'glob'],
+  tools: [],
   groupBy: 'adjacent',
   maxGroupSize: 8,
 }
