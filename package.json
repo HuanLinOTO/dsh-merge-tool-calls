@@ -7,7 +7,7 @@
   "keywords": [
     "dsh-plugin"
   ],
-  "description": "Merge consecutive same-tool calls (read/grep/glob) in the DSH WebUI chat flow into one card with compact child rows.",
+  "description": "Merge consecutive same-tool calls in the DSH WebUI chat flow into one card with compact child rows (all built-in tools by default).",
   "type": "module",
   "license": "MIT",
   "main": "./lib/index.js",
@@ -55,7 +55,12 @@
   "peerDependencies": {
     "cordis": "^4.0.0-rc.7",
     "react": "^18.2.0",
-    "schemastery": "^3.18.0"
+    "schemastery": "^3.18.0",
+    "@deepseek-ai/dsh-client-locale": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-runtime": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-tool": "0.1.0-rc.6"
   },
   "peerDependenciesMeta": {
     "cordis": {
@@ -65,6 +70,21 @@
       "optional": true
     },
     "schemastery": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-locale": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-runtime": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-primitives": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-slots": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-tool": {
       "optional": true
     }
   },
