@@ -19,7 +19,7 @@
   `[data-chat-flow-kind="tool-call"]:has([data-slot="tool.call.toolview"]:empty) { display: none; }`
   将其从流中收起（与内置 `.flowItem:empty` 语义一致；渲染器为每个 toolview 包一层
   `data-slot` 容器，故以该容器判空）。
-- 子行紧凑（20px 高），结构为主行的尾部（`sep 点 + 路径`）。对齐**运行时自动测量**：组件挂载后量取主行 sep 点相对卡片的偏移（并用 ResizeObserver 跟随字体/布局变化），直接用它设置子行缩进——sep 点与主行 sep 点同列、路径与主行摘要同列，不依赖任何手工字体宽度常量，Read / Grep / Glob 及任意工具名均自动对齐。
+- 子行紧凑（20px 高），结构为主行的尾部（`sep 点 + 路径`）。对齐**运行时自动测量**：组件挂载后量取主行 sep 点相对卡片的偏移（并用 ResizeObserver 跟随字体/布局变化），以 `--mtc-sep-left` 自定义属性设置子行缩进——sep 点与主行 sep 点同列、路径与主行摘要同列，不依赖任何手工字体宽度常量，Read / Grep / Glob 及任意工具名均自动对齐。展开的子行卡片以负向 `calc` 抵消该缩进，左边缘与主卡片内容区对齐（占满卡片宽度，左侧不留白）。
 
 ## 配置
 

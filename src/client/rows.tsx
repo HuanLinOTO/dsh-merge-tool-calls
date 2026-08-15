@@ -12,7 +12,7 @@
  * slices (replay-deterministic); expand state is component-local view state.
  * @module
  */
-import { memo, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { memo, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   DisclosureRow, IconBrowseOutline16, IconSearchOutline16, ReadBlock, SearchBlock, StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -273,12 +273,14 @@ export function MergedToolRow({ callId, toolName, block, cwd, openFile, inspect,
         mergedCount={run.blocks.length - 1}
       />
       {hasChildren && (
-        // The inline margin overrides the CSS fallback with the measured dot
+        // The custom property overrides the CSS fallback with the measured dot
         // column: the 2px dot + 8px sep right margin land the path exactly on
-        // the main summary column.
+        // the main summary column. It is a property rather than an inline
+        // margin so the expanded child card can cancel the indent and span the
+        // card width (see `.mtc-child-body` in styles.ts).
         <div
           className="mtc-children"
-          style={sepLeft === null ? undefined : { marginLeft: `${sepLeft}px` }}
+          style={sepLeft === null ? undefined : { ['--mtc-sep-left']: `${sepLeft}px` } as CSSProperties}
         >
           {run.blocks.slice(1).map(child => (
             <ChildRow key={child.callId} toolName={toolName} block={child} cwd={cwd} openFile={openFile} t={t} />

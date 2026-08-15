@@ -69,9 +69,9 @@ export const CSS = `
 
 /* Compact child rows: each is the main row's tail structure — [sep dot][path].
    The dot/path columns are set at runtime by the component (it measures the
-   main row's sep offset and indents the children block to it), so this margin
-   is only the pre-measure fallback. */
-.mtc-children { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 2px 61px; }
+   main row's sep offset and sets the --mtc-sep-left custom property on the
+   children block), so this is only the pre-measure fallback. */
+.mtc-children { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 2px var(--mtc-sep-left, 61px); }
 .mtc-child { display: flex; flex-direction: column; min-width: 0; }
 .mtc-child-row {
   display: flex; align-items: center; gap: 0; min-width: 0; height: 20px;
@@ -96,7 +96,10 @@ export const CSS = `
 .mtc-child-path-link:hover { color: var(--dsw-alias-label-primary); text-decoration-color: currentColor; }
 .mtc-child-state { flex: none; font-size: 11px; line-height: 16px; color: var(--dsw-alias-label-tertiary); }
 .mtc-child-state[data-error] { color: var(--dsw-alias-state-error-primary); }
-.mtc-child-body { margin: 2px 0 2px 0; min-width: 0; }
+/* The expanded child card must not inherit the children block's sep indent:
+   pull its left edge back to the main card body's column (root + 4px) so the
+   card spans the card width instead of leaving a blank gutter on its left. */
+.mtc-child-body { margin: 2px 0 2px calc(4px - var(--mtc-sep-left, 61px)); min-width: 0; }
 
 .mtc-visually-hidden {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
