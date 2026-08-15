@@ -52,8 +52,17 @@ profile 无需额外解析。
 
 ## 运行（挂载到 profile）
 
+开发热更新（本地 clone，改源码重建 `lib/` 即生效）：
+
 ```sh
 dsh plugin --profile web add link:D:\Projects\deepseek-harness\dsh-merge-tool-calls
+```
+
+分发安装（二选一）：
+
+```sh
+dsh plugin --profile web add "github:huanlinoto/dsh-merge-tool-calls"   # 源码分发
+dsh plugin --profile web add "@huanlin/dsh-plugin-merge-tool-calls"     # npm registry 分发
 ```
 
 然后由人类重启 `dsh web` 进程并硬刷新浏览器（`Ctrl+Shift+R`）。
