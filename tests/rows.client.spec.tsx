@@ -15,6 +15,9 @@ const T = ((key: string, params?: Record<string, unknown>) => {
   const dict: Record<string, string> = {
     running: 'Running', failed: 'Failed', stopped: 'Interrupted',
     expand: 'Expand', collapse: 'Collapse', more: '+{n}',
+    countFiles: '{n} Files', countQueries: '{n} Queries',
+    countCommands: '{n} Commands', countPrograms: '{n} Programs',
+    countCalls: '{n} Calls',
   }
   const raw = dict[key] ?? key
   return params === undefined ? raw : raw.replace(/\{(\w+)\}/g, (_, name: string) => String(params[name]))
@@ -99,7 +102,7 @@ afterEach(() => {
 })
 
 describe('MergedToolRow', () => {
-  it('renders the run card for the first call, with one child row per continuation', () => {
+  it('renders the run card for the first call, with one child row per call (including the first)', () => {
     const snapshot = snapshotOf(['a', 'b', 'c'], {
       a: { callId: 'a', block: settledRead('a', 'foo.ts') },
       b: { callId: 'b', block: settledRead('b', 'bar.ts') },
@@ -108,15 +111,20 @@ describe('MergedToolRow', () => {
     const useSession = ((selector: (s: ConversationSnapshot) => unknown) => selector(snapshot)) as MergedToolRowProps['useSession']
     const { container, root } = render({ callId: 'a', useSession })
     expect(container.querySelector('[data-testid="disclosure"]')).not.toBeNull()
-    expect(container.textContent).toContain('Read')
-    expect(container.textContent).toContain('foo.ts')
-    // Two continuation child rows.
+    // Main row shows the variant title and the merged-count summary.
+    const titleRow = container.querySelector('.mtc-title-row')
+    expect(titleRow!.textContent).toContain('Read')
+    expect(titleRow!.textContent).toContain('3 Files')
+    // The first call's file path is NOT on the main row — it lives on a child row.
+    expect(titleRow!.textContent).not.toContain('foo.ts')
+    // Three child rows (all calls, including the first), each showing its file path.
     const toggles = container.querySelectorAll('.mtc-child-row')
-    expect(toggles.length).toBe(2)
-    expect(toggles[0]!.textContent).toContain('bar.ts')
-    expect(toggles[1]!.textContent).toContain('baz.ts')
-    // Merged-count suffix.
-    expect(container.textContent).toContain('+2')
+    expect(toggles.length).toBe(3)
+    expect(toggles[0]!.textContent).toContain('foo.ts')
+    expect(toggles[1]!.textContent).toContain('bar.ts')
+    expect(toggles[2]!.textContent).toContain('baz.ts')
+    // No `+n` suffix — the count is the summary now.
+    expect(container.textContent).not.toContain('+2')
     unmount(root)
   })
 
@@ -131,6 +139,30 @@ describe('MergedToolRow', () => {
     unmount(root)
   })
 
+  it('collapses child rows by default and reveals them on main row click', () => {
+    const snapshot = snapshotOf(['a', 'b', 'c'], {
+      a: { callId: 'a', block: settledRead('a', 'foo.ts') },
+      b: { callId: 'b', block: settledRead('b', 'bar.ts') },
+      c: { callId: 'c', block: settledRead('c', 'baz.ts') },
+    })
+    const useSession = ((selector: (s: ConversationSnapshot) => unknown) => selector(snapshot)) as MergedToolRowProps['useSession']
+    const { container, root } = render({ callId: 'a', useSession })
+    // The animated children-collapse wrapper exists and is closed by default.
+    const collapse = container.querySelector('.mtc-children-collapse')
+    expect(collapse).not.toBeNull()
+    expect(collapse!.getAttribute('data-open')).toBeNull()
+    // Child rows stay in the DOM (grid-template-rows keeps them for the slide).
+    expect(container.querySelectorAll('.mtc-child-row').length).toBe(3)
+    // Clicking the main row toggles the children block open.
+    const titleRow = container.querySelector('.mtc-title-row') as HTMLDivElement
+    act(() => { titleRow.click() })
+    expect(collapse!.getAttribute('data-open')).not.toBeNull()
+    // Clicking again collapses it.
+    act(() => { titleRow.click() })
+    expect(collapse!.getAttribute('data-open')).toBeNull()
+    unmount(root)
+  })
+
   it('expands a child row to reveal its file content on click', () => {
     const snapshot = snapshotOf(['a', 'b'], {
       a: { callId: 'a', block: settledRead('a', 'foo.ts') },
@@ -139,11 +171,13 @@ describe('MergedToolRow', () => {
     const useSession = ((selector: (s: ConversationSnapshot) => unknown) => selector(snapshot)) as MergedToolRowProps['useSession']
     const { container, root } = render({ callId: 'a', useSession })
     expect(container.querySelectorAll('[data-testid="readblock"]').length).toBe(0) // collapsed
+    // The first child row is the first call (foo.ts) — its inline content card
+    // opens on click, independent of the main row's children-collapse.
     const row = container.querySelector('.mtc-child-row') as HTMLDivElement
     act(() => { row.click() })
     const blocks = container.querySelectorAll('[data-testid="readblock"]')
     expect(blocks.length).toBe(1) // the child's card body; the main row stays collapsed
-    expect(blocks[0]!.textContent).toContain('bar.ts')
+    expect(blocks[0]!.textContent).toContain('foo.ts')
     unmount(root)
   })
 
@@ -159,10 +193,11 @@ describe('MergedToolRow', () => {
       useSession,
       openFile: (path: string) => { opened.push(path) },
     })
+    // The first child row is the first call (foo.ts) — its path is the open-file link.
     const link = container.querySelector('.mtc-child-path-link') as HTMLButtonElement
     expect(link).not.toBeNull()
     act(() => { link.click() })
-    expect(opened).toEqual(['bar.ts'])
+    expect(opened).toEqual(['foo.ts'])
     // The link's stopPropagation must not toggle the row's inline expand.
     expect(container.querySelectorAll('[data-testid="readblock"]').length).toBe(0)
     unmount(root)
@@ -222,10 +257,11 @@ describe('MergedToolRow', () => {
       openFile: (path: string) => { opened.push(path) },
     })
     expect(container.textContent).toContain('Write')
+    // The first child row is the first call (out.ts) — its path is the open-file link.
     const link = container.querySelector('.mtc-child-path-link') as HTMLButtonElement
     expect(link).not.toBeNull()
     act(() => { link.click() })
-    expect(opened).toEqual(['out2.ts'])
+    expect(opened).toEqual(['out.ts'])
     unmount(root)
   })
 })

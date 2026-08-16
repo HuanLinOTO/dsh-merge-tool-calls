@@ -8,10 +8,13 @@
 
 ```
 合并前：                         合并后：
-[Read] foo ▸ 内容                 [Read] foo ▸ 内容（主卡片，行为同现状）
-[Read] bar ▸ 内容                   └ bar（子行，点击展开 bar 的内容）
-[Read] baz ▸ 内容                   └ baz（子行，点击展开 baz 的内容）
+[Read] foo ▸ 内容                 [Read] · 3 Files  ▸（点击展开子行）
+[Read] bar ▸ 内容                   └ foo（子行，点击展开 foo 的内容）
+[Read] baz ▸ 内容                   └ bar（子行，点击展开 bar 的内容）
+                                    └ baz（子行，点击展开 baz 的内容）
 ```
+
+主行只显示数量摘要（`Read · 3 Files`），具体文件路径全部下沉到子行；子行默认折叠，点击主行以动画展开/收起。单次调用（无合并）保持原行为（主行直接显示路径并展开内容）。
 
 纯展示层合并：会话日志、模型可见数据、详情面板均不受影响；回放确定（合并结果是聊天快照的纯函数）。
 
@@ -23,8 +26,9 @@
   `[data-chat-flow-kind="tool-call"]:has([data-slot="tool.call.toolview"]:empty) { display: none; }`
   将其从流中收起（与内置 `.flowItem:empty` 语义一致；渲染器为每个 toolview 包一层
   `data-slot` 容器，故以该容器判空）。
-- 主卡片镜像内置 ToolRow 的行面：按 variant 渲染标题/图标（Read/Search/Bash/Write/Edit/Code/`Tool call`，工具自定义标题如 `Pwsh`/`Inspect` 优先）、args 摘要（读→路径、搜索→query、bash→description/command、未知工具带 `工具名 ·` 前缀）、read/search/diff/terminal/web 卡片或 IN/OUT 文本；`read`/`write`/`edit` 的摘要是可点击文件链接。行状态、错误首行、bash 失败退出码转红点均与内置一致。
-- 子行紧凑（20px 高），结构为主行的尾部（`sep 点 + 路径`）。对齐**运行时自动测量**：组件挂载后量取主行 sep 点相对卡片的偏移（并用 ResizeObserver 跟随字体/布局变化），以 `--mtc-sep-left` 自定义属性设置子行缩进——sep 点与主行 sep 点同列、路径与主行摘要同列，不依赖任何手工字体宽度常量，任意工具名均自动对齐。展开的子行卡片以负向 `calc` 抵消该缩进，左边缘与主卡片内容区对齐（占满卡片宽度，左侧不留白）。无可展开内容（如运行中的 read）的子行渲染为静态行。
+- 主卡片镜像内置 ToolRow 的行面：按 variant 渲染标题/图标（Read/Search/Bash/Write/Edit/Code/`Tool call`，工具自定义标题如 `Pwsh`/`Inspect` 优先）。**合并组的主行摘要改为数量**（`Read · 5 Files` / `Search · 3 Queries` / `Bash · 4 Commands` 等，按 variant 选名词），不再显示首个调用的路径；单次调用（无合并）仍显示 args 摘要（读→路径、搜索→query、bash→description/command、未知工具带 `工具名 ·` 前缀），`read`/`write`/`edit` 单行的摘要是可点击文件链接。行状态、错误首行、bash 失败退出码转红点均与内置一致。
+- 子行紧凑（20px 高），结构为主行的尾部（`sep 点 + 路径`）。合并组内**所有调用（含首个）**均渲染为子行，所以每个文件路径都在子行上。对齐**运行时自动测量**：组件挂载后量取主行 sep 点相对卡片的偏移（并用 ResizeObserver 跟随字体/布局变化），以 `--mtc-sep-left` 自定义属性设置子行缩进——sep 点与主行 sep 点同列、路径与主行摘要同列，不依赖任何手工字体宽度常量，任意工具名均自动对齐。展开的子行卡片以负向 `calc` 抵消该缩进，左边缘与主卡片内容区对齐（占满卡片宽度，左侧不留白）。无可展开内容（如运行中的 read）的子行渲染为静态行。
+- 子行**默认折叠**：主行点击展开时，子行块以 `grid-template-rows: 0fr → 1fr` + 透明度过渡动画滑出（200ms），收起时反向滑回；折叠期间子行仍在 DOM 中（grid 0fr + `overflow: hidden` 收起，不卸载），所以动画平滑无闪烁。每个子行仍可独立点击展开其内容卡片。
 
 ## 配置
 
@@ -75,15 +79,15 @@ dsh plugin --profile web add "@huanlin/dsh-plugin-merge-tool-calls"     # npm re
 
 - `pnpm run typecheck && pnpm test && pnpm run build` 全绿；
 - `git -C <dsh checkout> status` 干净（零源码 patch）；
-- 浏览器验证：连续 3 个 `read` 显示为一个主卡片 + 两个 `└` 子行，点击子行展开内容；
+- 浏览器验证：连续 3 个 `read` 主行显示 `Read · 3 Files`，点击主行以动画展开 3 个 `└` 子行（foo/bar/baz 各一行），再点击子行展开内容；
   `grep`/`glob` 同理；`write`/`edit` 子行展开显示 diff 卡片、`bash`/`pwsh` 显示终端卡片、
   路径子行可点击在侧边栏预览；中间隔了其他节点的调用保持单卡片。
 
 ## 边界行为
 
-- 组内运行中（running）调用只显示 args 摘要路径，结果到达后原地更新。
-- error / interrupted 调用按内置语义着色（错误首行 / 警告状态点）；bash 非零退出码按内置语义转为红色错误点。
-- `read`/`write`/`edit` 家族的主行/子行摘要是可点击文件链接（与内置行为一致）；grep/glob 的 `path` 参数是搜索目录而非文件，摘要保持纯文本，不会误开目录。
+- 组内运行中（running）调用：主行显示数量摘要（如 `Read · 3 Files`），子行折叠时不可见，展开后各子行显示对应调用的 args 摘要路径；结果到达后原地更新。
+- error / interrupted 调用按内置语义着色（错误首行 / 警告状态点）；bash 非零退出码按内置语义转为红色错误点。主行错误时摘要回退为错误首行（不显示数量）。
+- `read`/`write`/`edit` 家族的子行摘要是可点击文件链接（与内置行为一致，打开侧边栏预览）；grep/glob 的 `path` 参数是搜索目录而非文件，摘要保持纯文本，不会误开目录。单次调用（无合并）的主行摘要是文件链接。
 - 组被任何其他节点打断即断开；超过 `maxGroupSize` 的部分另起新组（不丢调用）。
 - 非聊天节点场景（如被 dispatch 为子调用）回退为普通单行，绝不空白。
 - 带自定义行卡片的工具（`skill`、`cordis_define`、`cordis_run`/`cordis_stop`/`cordis_undefine`，以及摘要格式特殊的 `todo_write`/`ask_user_question`）**不**默认接管，保持内置行；如需合并，用 `tools` 白名单显式加入（合并行按通用行面渲染）。

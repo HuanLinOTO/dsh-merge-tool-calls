@@ -8,6 +8,11 @@ export declare const zh: {
     more: string;
     showLess: string;
     mergedCount: string;
+    countFiles: string;
+    countQueries: string;
+    countCommands: string;
+    countPrograms: string;
+    countCalls: string;
     'terminal.signal': string;
     'terminal.exitCode': string;
     'terminal.running': string;
@@ -31,6 +36,11 @@ export declare const en: {
     more: string;
     showLess: string;
     mergedCount: string;
+    countFiles: string;
+    countQueries: string;
+    countCommands: string;
+    countPrograms: string;
+    countCalls: string;
     'terminal.signal': string;
     'terminal.exitCode': string;
     'terminal.running': string;

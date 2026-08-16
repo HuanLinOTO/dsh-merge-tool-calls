@@ -3,6 +3,7 @@ import { type ReactNode } from 'react'
 
 export function DisclosureRow({
   title, open, expandable, collapsedContent, children, onToggle, expandOnRowClick,
+  className, rowClassName, titleClassName, icon,
 }: {
   title: string
   open: boolean
@@ -19,10 +20,14 @@ export function DisclosureRow({
   titleClassName?: string
   icon?: ReactNode
 }) {
+  const classList = [className].filter(Boolean).join(' ')
+  const rowClassList = [rowClassName].filter(Boolean).join(' ')
+  const titleClassList = [titleClassName].filter(Boolean).join(' ')
   return (
-    <div data-testid="disclosure" data-open={open || undefined} data-expandable={expandable || undefined}>
-      <div data-testid="disclosure-row" role={expandOnRowClick ? 'button' : undefined} onClick={expandOnRowClick ? onToggle : undefined}>
-        {title}
+    <div className={classList || undefined} data-testid="disclosure" data-open={open || undefined} data-expandable={expandable || undefined}>
+      <div className={rowClassList || undefined} data-testid="disclosure-row" role={expandOnRowClick ? 'button' : undefined} onClick={expandOnRowClick ? onToggle : undefined}>
+        {icon}
+        <span className={titleClassList || undefined}>{title}</span>
         {collapsedContent}
       </div>
       {open && children}

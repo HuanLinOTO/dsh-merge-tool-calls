@@ -49,6 +49,22 @@ const VARIANT_ICONS: Record<ToolVariant, ReactNode> = {
   others: <IconSparkle16 size={14} />,
 }
 
+/**
+ * Per-variant locale key for the merged-count summary (`{n} Files`, `{n}
+ * Commands`, …). Replaces the first call's file path on the main row when the
+ * run merges more than one call, so the main row reads `Read · 5 Files` and
+ * the file paths move to the collapsed child rows.
+ */
+const VARIANT_COUNT_KEY: Record<ToolVariant, 'countFiles' | 'countQueries' | 'countCommands' | 'countPrograms' | 'countCalls'> = {
+  read: 'countFiles',
+  write: 'countFiles',
+  edit: 'countFiles',
+  search: 'countQueries',
+  bash: 'countCommands',
+  code: 'countPrograms',
+  others: 'countCalls',
+}
+
 /** Leading-slot state substitution, mirroring the shipped row. */
 function leadingFor(state: RowState, icon: ReactNode): ReactNode {
   switch (state) {
@@ -132,9 +148,16 @@ function CardBody({ model, t }: { model: CallRowModel; t: MergedToolRowProps['t'
   )
 }
 
-/** The run's main card: the first call's full row (chrome + expandable card). */
+/**
+ * The run's main card: the first call's chrome (variant title/icon + state)
+ * plus, for a single call, its expandable content card. For a merged run the
+ * main row's collapsed summary is the count (`Read · 5 Files`) and the
+ * expanded body is the child-rows block (passed in as `children`); the first
+ * call is rendered as the first child row so every file path lands on a child
+ * row, never on the main row.
+ */
 export const RowCard = memo(function RowCard({
-  toolName, block, cwd, openFile, inspect, t, mergedCount,
+  toolName, block, cwd, openFile, inspect, t, mergedCount, children,
 }: {
   toolName: string
   block: ToolCallBlock
@@ -142,25 +165,33 @@ export const RowCard = memo(function RowCard({
   openFile: (path: string) => void
   inspect: (() => void) | undefined
   t: MergedToolRowProps['t']
-  /** Continuation-call count rendered as a muted `+n` suffix; 0 hides it. */
+  /** Continuation-call count; 0 means a single-call row (no child rows). */
   mergedCount: number
+  /** Child rows for the merged run (all calls, including the first). */
+  children?: ReactNode
 }) {
   const model = callRowModel(toolName, block, cwd)
   const [expanded, setExpanded] = useState(false)
-  const open = expanded && model.expandable
+  const hasChildren = mergedCount > 0
+  const expandable = model.expandable || hasChildren
+  const open = expanded && expandable
   const status = stateStatus(model.state, t)
   const failureLine = model.state === 'error' ? model.errorSummary ?? null : null
-  const summaryText = failureLine ?? model.summary
-  const suffix = failureLine === null && mergedCount > 0
-    ? t('more', { n: String(mergedCount) })
-    : null
-  const fileLink = model.filePath !== undefined && openFile !== undefined && failureLine === null
+  // Merged runs trade the first file path + `+n` suffix for a count summary,
+  // so the main row reads `Read · 5 Files`; the file paths live on the child
+  // rows. An error on the first call still surfaces its error text instead.
+  const summaryText = hasChildren && failureLine === null
+    ? t(VARIANT_COUNT_KEY[model.variant], { n: String(mergedCount + 1) })
+    : failureLine ?? model.summary
+  // The open-file link only applies to single-call rows (the merged summary is
+  // a count, not a path).
+  const fileLink = !hasChildren && model.filePath !== undefined && openFile !== undefined && failureLine === null
   const openFileClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
     if (model.filePath !== undefined) openFile(model.filePath)
   }
   return (
-    <div className="mtc-row" data-state={model.state} data-variant={model.variant}>
+    <div className="mtc-row" data-state={model.state} data-variant={model.variant} data-merged={hasChildren || undefined}>
       {status !== null && <span className="mtc-visually-hidden">{status}</span>}
       <DisclosureRow
         rowClassName="mtc-title-row"
@@ -170,7 +201,7 @@ export const RowCard = memo(function RowCard({
         icon={leadingFor(model.state, VARIANT_ICONS[model.variant])}
         title={model.title}
         open={open}
-        expandable={model.expandable}
+        expandable={expandable}
         expandOnRowClick
         keepContentWhenOpen
         onToggle={() => { setExpanded(value => !value) }}
@@ -182,17 +213,35 @@ export const RowCard = memo(function RowCard({
             ) : (
               <span className="mtc-summary">{summaryText}</span>
             )}
-            {suffix !== null && <span className="mtc-summary-suffix">{suffix}</span>}
           </>
         )}
       >
-        <div className="mtc-card-body">
-          <CardBody model={model} t={t} />
-          {inspect !== undefined && (
-            <button type="button" className="mtc-inspect" onClick={inspect}>Inspect</button>
-          )}
-        </div>
+        {/* Single-call mode: the first call's expandable content card lives in
+            the disclosure body. Merged mode renders nothing here — the child
+            rows block is a sibling below, animated via its own collapse grid. */}
+        {!hasChildren && (
+          <div className="mtc-card-body">
+            <CardBody model={model} t={t} />
+            {inspect !== undefined && (
+              <button type="button" className="mtc-inspect" onClick={inspect}>Inspect</button>
+            )}
+          </div>
+        )}
       </DisclosureRow>
+      {hasChildren && (
+        // The animated children block. Lives outside DisclosureRow so the
+        // grid-template-rows transition can keep the rows in the DOM while
+        // collapsing (DisclosureRow would unmount them instantly). The
+        // --mtc-sep-left custom property is set by the parent on .mtc-root.
+        <div className="mtc-children-collapse" data-open={open || undefined}>
+          <div className="mtc-children">
+            {children}
+          </div>
+        </div>
+      )}
+      {hasChildren && open && inspect !== undefined && (
+        <button type="button" className="mtc-inspect" onClick={inspect}>Inspect</button>
+      )}
     </div>
   )
 })
@@ -317,7 +366,15 @@ export function MergedToolRow({ callId, toolName, block, cwd, openFile, inspect,
   if (!run.isFirst) return null
   const hasChildren = run.blocks.length > 1
   return (
-    <div className="mtc-root" data-tool={toolName} ref={rootRef}>
+    <div
+      className="mtc-root"
+      data-tool={toolName}
+      ref={rootRef}
+      // The measured dot column lands the children's sep dot on the main row's
+      // summary column. Set on the root so it cascades into RowCard's
+      // .mtc-children block.
+      style={sepLeft === null ? undefined : { ['--mtc-sep-left']: `${sepLeft}px` } as CSSProperties}
+    >
       <RowCard
         toolName={toolName}
         block={run.blocks[0] ?? block}
@@ -326,22 +383,14 @@ export function MergedToolRow({ callId, toolName, block, cwd, openFile, inspect,
         inspect={inspect}
         t={t}
         mergedCount={run.blocks.length - 1}
-      />
-      {hasChildren && (
-        // The custom property overrides the CSS fallback with the measured dot
-        // column: the 2px dot + 8px sep right margin land the path exactly on
-        // the main summary column. It is a property rather than an inline
-        // margin so the expanded child card can cancel the indent and span the
-        // card width (see `.mtc-child-body` in styles.ts).
-        <div
-          className="mtc-children"
-          style={sepLeft === null ? undefined : { ['--mtc-sep-left']: `${sepLeft}px` } as CSSProperties}
-        >
-          {run.blocks.slice(1).map(child => (
-            <ChildRow key={child.callId} toolName={toolName} block={child} cwd={cwd} openFile={openFile} t={t} />
-          ))}
-        </div>
-      )}
+      >
+        {/* Every call (including the first) renders as a child row, so the
+            main row's summary stays a count (`Read · 5 Files`) and every file
+            path lands on its own child row. */}
+        {hasChildren && run.blocks.map(child => (
+          <ChildRow key={child.callId} toolName={toolName} block={child} cwd={cwd} openFile={openFile} t={t} />
+        ))}
+      </RowCard>
     </div>
   )
 }

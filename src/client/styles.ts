@@ -87,8 +87,34 @@ export const CSS = `
 /* Compact child rows: each is the main row's tail structure — [sep dot][path].
    The dot/path columns are set at runtime by the component (it measures the
    main row's sep offset and sets the --mtc-sep-left custom property on the
-   children block), so this is only the pre-measure fallback. */
-.mtc-children { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 2px var(--mtc-sep-left, 61px); }
+   root), so this is only the pre-measure fallback.
+
+   The .mtc-children-collapse wrapper animates the block's height with a
+   grid-template-rows 0fr↔1fr transition (children stay in the DOM while
+   collapsing, so the slide is smooth instead of popping out). The vertical
+   margin lives on the wrapper (not .mtc-children) so it doesn't leak past the
+   0fr row when collapsed. */
+.mtc-children-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin: 0;
+  transition: grid-template-rows 200ms ease-out, margin 200ms ease-out;
+}
+.mtc-children-collapse[data-open] {
+  grid-template-rows: 1fr;
+  margin: 2px 0;
+}
+.mtc-children {
+  display: flex; flex-direction: column; gap: 1px;
+  margin: 0 0 0 var(--mtc-sep-left, 61px);
+  min-width: 0; min-height: 0; overflow: hidden;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.mtc-children-collapse[data-open] .mtc-children {
+  opacity: 1;
+  transition: opacity 150ms ease-out 50ms;
+}
 .mtc-child { display: flex; flex-direction: column; min-width: 0; }
 .mtc-child-row {
   display: flex; align-items: center; gap: 0; min-width: 0; height: 20px;
