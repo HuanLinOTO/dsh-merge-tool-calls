@@ -1,3 +1,7 @@
+[![dshfind](https://dshfind.com/api/badge/huanlinoto/dsh-merge-tool-calls?lang=zh)](https://dshfind.com/zh/plugins/huanlinoto/dsh-merge-tool-calls?ref=badge)
+
+> 📌 本插件已收录于 [dshfind](https://dshfind.com/zh) 插件超市，点击上方徽章直达主页。
+
 # dsh-plugin-merge-tool-calls
 
 把 WebUI 会话流中**连续相邻**的同工具调用合并为一个「主卡片 + 紧凑子行」的树状展示，减少连续读文件/搜索/编辑/执行命令时多条卡片对流的占据。默认覆盖所有内置通用行工具（`read`/`grep`/`glob`/`edit`/`write`/`bash`/`pwsh`/`web_search`/`web_fetch`/`run_code`/`cordis_package_inspect`/`cordis_runtime_inspect`），也可配置白名单。
