@@ -1,4 +1,4 @@
-/** Package invariant companion for dsh-merge-tool-calls. */
+/** Package invariant companion for dsh-plugin-merge-tool-calls. */
 import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
 
 const PACKAGE_NAME = '@huanlin/dsh-plugin-merge-tool-calls'

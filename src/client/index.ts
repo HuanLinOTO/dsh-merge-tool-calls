@@ -8,7 +8,7 @@
  * The shadowed component merges consecutive calls of one tool in the chat flow
  * into a single card with compact child rows.
  *
- * @module @dsh-external/dsh-merge-tool-calls/client
+ * @module @dsh-external/dsh-plugin-merge-tool-calls/client
  */
 
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'

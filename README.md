@@ -1,6 +1,6 @@
-[![dshfind](https://dshfind.com/api/badge/huanlinoto/dsh-merge-tool-calls?lang=zh)](https://dshfind.com/zh/plugins/huanlinoto/dsh-merge-tool-calls?ref=badge)
-
-> 📌 本插件已收录于 [dshfind](https://dshfind.com/zh) 插件超市，点击上方徽章直达主页。
+<p align="center">
+  <a href="https://dshfind.com/zh/plugins/huanlinoto/dsh-plugin-merge-tool-calls"><img src="https://dshfind.com/api/card/huanlinoto/dsh-plugin-merge-tool-calls?lang=zh" alt="dsh-plugin-merge-tool-calls card"></a>
+</p>
 
 # dsh-plugin-merge-tool-calls
 
@@ -59,13 +59,13 @@ profile 无需额外解析。
 开发热更新（本地 clone，改源码重建 `lib/` 即生效）：
 
 ```sh
-dsh plugin --profile web add link:D:\Projects\deepseek-harness\dsh-merge-tool-calls
+dsh plugin --profile web add link:D:\Projects\deepseek-harness\dsh-plugin-merge-tool-calls
 ```
 
 分发安装（二选一）：
 
 ```sh
-dsh plugin --profile web add "github:huanlinoto/dsh-merge-tool-calls"   # 源码分发
+dsh plugin --profile web add "github:huanlinoto/dsh-plugin-merge-tool-calls"   # 源码分发
 dsh plugin --profile web add "@huanlin/dsh-plugin-merge-tool-calls"     # npm registry 分发
 ```
 
